@@ -1,0 +1,36 @@
+amaru_fo PDF TOOL - INSTRUCCIONES MUY FACILES
+
+1. Descarga la carpeta completa de la herramienta.
+
+2. Abre la carpeta y haz doble clic en:
+
+   install_windows.bat
+
+3. Windows puede preguntar si deseas permitir la ejecucion.
+   Acepta. El instalador prepara Python y las dependencias.
+
+4. Si el instalador pregunta por OCR, pulsa Enter para instalarlo.
+   OCR sirve para convertir PDFs escaneados a texto.
+   Si no lo quieres, escribe n y pulsa Enter.
+
+5. Cuando termine, veras en el Escritorio un acceso directo llamado:
+
+   amaru_fo PDF TOOL
+
+6. Desde ahora solo haz doble clic en ese acceso directo.
+
+7. Si quieres numerar y firmar un PDF, elige la opcion 1 del menu.
+
+8. Si el programa te pide una ruta de archivo, puedes arrastrar el PDF a la ventana negra
+   y soltarlo. Windows pegara la ruta automaticamente.
+
+Pagina de ayuda / autor:
+https://amarufo.github.io/PAGE-AIP/
+
+Nota:
+Si el instalador dice que no encontro Python, instala Python desde:
+https://www.python.org/downloads/
+Marca la casilla "Add Python to PATH" durante la instalacion y luego vuelve a abrir install_windows.bat.
+
+Para OCR, Tesseract recomendado para Windows:
+https://github.com/UB-Mannheim/tesseract
