@@ -1,15 +1,11 @@
-# amaru_fo PDF TOOL Tactical
+# amaru_fo-PDF-TOOL-Tactical
 
 Suite CLI visual para editar PDFs en Windows. Pensada para usuarios de oficina: abrir, elegir opcion, seleccionar archivos y obtener el PDF final.
 
 Pagina del autor: <https://amarufo.github.io/PAGE-AIP/>
 OCR/Tesseract recomendado: <https://github.com/UB-Mannheim/tesseract>
 
-```text
-El arranque muestra el arte incluido en ascci.txt, el nombre amaru_fo y la web del autor.
-```
-
-## Para usuarios sin experiencia en Python
+## Pasos simples para instalación
 
 1. Descarga esta carpeta completa.
 2. Abre la carpeta.
@@ -45,21 +41,6 @@ El programa te preguntara:
 - Si quieres generar una vista previa PNG antes de aplicar.
 
 Consejo: cuando te pida una ruta, puedes arrastrar el PDF o la imagen hacia la ventana y soltarlo.
-
-## Archivos incluidos
-
-| Archivo | Para que sirve |
-| --- | --- |
-| `install_windows.bat` | Instalador de doble clic para usuarios basicos |
-| `install_windows.ps1` | Instalador real en PowerShell |
-| `run_pdftool.bat` | Abre la herramienta desde esta carpeta |
-| `pdftool.py` | Programa principal |
-| `ascci.txt` | Arte introductorio mostrado al iniciar |
-| `requirements.txt` | Dependencias obligatorias |
-| `requirements-optional.txt` | Dependencias opcionales para OCR/desbloqueo avanzado |
-| `audit_pdftool.py` | Auditoria rapida de funcionamiento |
-| `LEEME_PRIMERO.txt` | Instrucciones simples |
-| `PDFTOOL.md` | Guia completa de comandos |
 
 ## Funciones
 
@@ -105,12 +86,3 @@ python audit_pdftool.py
 
 La auditoria crea un PDF de muestra y valida numeracion, marca de agua, metadatos, exportacion a imagenes, creacion de PDF desde imagenes y proteccion con contrasena.
 
-## Publicar en GitHub
-
-Repositorio objetivo:
-
-```text
-git@github.com:amarufo/pdf_tool_tactical.git
-```
-
-Indica a los usuarios que descarguen el ZIP del repositorio, lo extraigan y ejecuten `install_windows.bat`.

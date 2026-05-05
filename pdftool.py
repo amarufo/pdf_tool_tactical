@@ -48,8 +48,8 @@ except ImportError:
 console = Console()
 
 AUTHOR_NAME = "amaru_fo"
-AUTHOR_PAGE = "https://amarufo.github.io/PAGE-AIP/"
-TESSERACT_URL = "https://github.com/UB-Mannheim/tesseract"
+AUTHOR_PAGE = "github.com/amarufo"
+TESSERACT_URL = "github.com/UB-Mannheim/tesseract"
 ASCII_ART_FILE = Path(__file__).with_name("ascci.txt")
 
 ANIMALITO = r"""
