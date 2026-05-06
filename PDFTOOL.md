@@ -22,12 +22,45 @@ Si Windows dice que no encuentra Python, instalarlo desde <https://www.python.or
 
 Si el instalador no logra instalar Tesseract automaticamente, descarga el instalador Windows de UB-Mannheim desde <https://github.com/UB-Mannheim/tesseract>.
 
+## Instalacion facil en Linux
+
+Para preparar la herramienta dentro de esta carpeta:
+
+```bash
+chmod +x install_linux.sh run_pdftool.sh
+./install_linux.sh
+```
+
+Luego ejecuta:
+
+```bash
+./run_pdftool.sh
+```
+
+Si falta soporte de entornos virtuales en Debian/Ubuntu:
+
+```bash
+sudo apt install python3 python3-venv python3-pip
+```
+
+Para OCR en Debian/Ubuntu:
+
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-spa
+```
+
 ## Menu interactivo
 
 Ejecuta:
 
 ```powershell
 run_pdftool.bat
+```
+
+En Linux:
+
+```bash
+./run_pdftool.sh
 ```
 
 O, si ya esta instalado, abre el acceso directo del Escritorio.
@@ -92,7 +125,7 @@ python pdftool.py preview documento.pdf --signature firma.png -o muestra.png --r
 
 ```powershell
 python pdftool.py merge a.pdf b.pdf -o unido.pdf
-python pdftool.py split documento.pdf -o partes\ -n 10
+python pdftool.py split documento.pdf -o partes -n 10
 python pdftool.py extract documento.pdf:1,3-5 -o seleccion.pdf
 python pdftool.py insert --host base.pdf --guest anexo.pdf --after 5 -o resultado.pdf
 python pdftool.py number documento.pdf -o numerado.pdf --corner tr --reverse
@@ -100,9 +133,9 @@ python pdftool.py sign documento.pdf --signature firma.png -o firmado.pdf --corn
 python pdftool.py rotate documento.pdf -o rotado.pdf --degrees 90 --pages 1,3-5
 python pdftool.py delete-pages documento.pdf --pages 2,5-7 -o limpio.pdf
 python pdftool.py compress documento.pdf -o optimizado.pdf
-python pdftool.py extract-images documento.pdf -o imagenes\
+python pdftool.py extract-images documento.pdf -o imagenes
 python pdftool.py watermark documento.pdf --text "CONFIDENCIAL" -o marcado.pdf --opacity 0.16
-python pdftool.py pdf-to-images documento.pdf -o paginas\ --pages 1-3 --dpi 200 --format png
+python pdftool.py pdf-to-images documento.pdf -o paginas --pages 1-3 --dpi 200 --format png
 python pdftool.py images-to-pdf foto1.png foto2.jpg -o desde_imagenes.pdf
 python pdftool.py protect documento.pdf -o protegido.pdf --password "clave"
 python pdftool.py metadata documento.pdf -o metadatos.pdf --title "Expediente" --author "amaru_fo"
@@ -132,12 +165,18 @@ python pdftool.py totxt documento.pdf -o documento.txt
 python pdftool.py totxt escaneado.pdf -o escaneado.txt --ocr --lang spa
 ```
 
-Para OCR instala tambien Tesseract para Windows.
+Para OCR instala tambien Tesseract. En Windows usa el instalador recomendado; en Linux usa el gestor de paquetes de tu distribucion.
 
 Descarga recomendada para Windows:
 
 ```text
 https://github.com/UB-Mannheim/tesseract
+```
+
+En Debian/Ubuntu:
+
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-spa
 ```
 
 ## Herramientas nuevas
@@ -151,7 +190,7 @@ python pdftool.py watermark documento.pdf --text "BORRADOR" -o borrador.pdf --op
 ### PDF a imagenes
 
 ```powershell
-python pdftool.py pdf-to-images documento.pdf -o paginas\ --pages all --dpi 200 --format png
+python pdftool.py pdf-to-images documento.pdf -o paginas --pages all --dpi 200 --format png
 ```
 
 ### Imagenes a PDF

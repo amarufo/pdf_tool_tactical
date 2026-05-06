@@ -1,5 +1,24 @@
 amaru_fo PDF TOOL - INSTRUCCIONES MUY FACILES
 
+EN LINUX
+
+1. Abre una terminal dentro de esta carpeta.
+
+2. Ejecuta:
+
+   chmod +x install_linux.sh run_pdftool.sh
+   ./install_linux.sh
+
+3. Para abrir la herramienta despues:
+
+   ./run_pdftool.sh
+
+4. Si quieres OCR en Debian/Ubuntu, instala tambien:
+
+   sudo apt install tesseract-ocr tesseract-ocr-spa
+
+EN WINDOWS
+
 1. Descarga la carpeta completa de la herramienta.
 
 2. Abre la carpeta y haz doble clic en:

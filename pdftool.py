@@ -1,7 +1,7 @@
 """
 pdftool.py - Suite multifuncional para edicion de PDFs en CLI.
 
-Herramienta estilo iLovePDF para Windows/PowerShell, con menu interactivo,
+Herramienta estilo iLovePDF para Windows, Linux y macOS, con menu interactivo,
 colores, ASCII art, acciones combinadas y salidas faciles de ubicar.
 
 Uso rapido:
@@ -54,6 +54,11 @@ AUTHOR_GITHUB = "https://github.com/amarufo"
 AUTHOR_CONTACT = "amaruf9523@gmail.com"
 DEFAULT_METADATA_VALUE = AUTHOR_PAGE
 TESSERACT_URL = "github.com/UB-Mannheim/tesseract"
+TESSERACT_INSTALL_HINT = (
+    "Instala Tesseract OCR. Linux Debian/Ubuntu: "
+    "sudo apt install tesseract-ocr tesseract-ocr-spa. "
+    "Windows: https://github.com/UB-Mannheim/tesseract"
+)
 ASCII_ART_FILE = Path(__file__).with_name("ascci.txt")
 
 ANIMALITO = r"""
@@ -726,27 +731,41 @@ def cmd_to_txt(input_pdf: Path, output: Path, ocr: bool, lang: str = "spa") -> N
             Image = __import__("PIL.Image", fromlist=["Image"])
         except ImportError:
             doc.close()
-            raise RuntimeError(f"Para OCR instala pytesseract/pillow y Tesseract para Windows: {TESSERACT_URL}")
-        # Auto-detectar ruta de Tesseract en Windows (evita error de PATH)
+            raise RuntimeError(f"Para OCR instala pytesseract/pillow. {TESSERACT_INSTALL_HINT}")
+        # Auto-detectar ruta de Tesseract en sistemas comunes.
         import os as _os
         _TESS_PATHS = [
             shutil.which("tesseract"),
+            "/usr/bin/tesseract",
+            "/usr/local/bin/tesseract",
             r"C:\Program Files\Tesseract-OCR\tesseract.exe",
             r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
             _os.path.join(_os.environ.get("LOCALAPPDATA", ""), "Programs", "Tesseract-OCR", "tesseract.exe"),
         ]
+        _tesseract_cmd = None
         for _tp in _TESS_PATHS:
             if _tp and _os.path.exists(_tp):
-                pytesseract.pytesseract.tesseract_cmd = _tp
+                _tesseract_cmd = _tp
+                pytesseract.pytesseract.tesseract_cmd = _tesseract_cmd
                 break
-        if not _os.path.exists(getattr(pytesseract.pytesseract, "tesseract_cmd", "")):
-            warn(f"No encuentro Tesseract. Instala la version Windows desde: {TESSERACT_URL}")
-        # Configurar TESSDATA_PREFIX: preferir carpeta de usuario (~\tessdata) con spa incluido
+        if _tesseract_cmd is None:
+            warn(f"No encuentro Tesseract. {TESSERACT_INSTALL_HINT}")
+        # Configurar TESSDATA_PREFIX: preferir una carpeta que tenga el idioma solicitado.
         _user_tessdata = _os.path.join(_os.path.expanduser("~"), "tessdata")
-        _sys_tessdata = _os.path.join(_os.path.dirname(pytesseract.pytesseract.tesseract_cmd), "tessdata")
+        _cmd_dir = _os.path.dirname(_tesseract_cmd or "")
+        _tessdata_candidates = [
+            _os.environ.get("TESSDATA_PREFIX"),
+            _user_tessdata,
+            _os.path.join(_cmd_dir, "tessdata") if _cmd_dir else None,
+            "/usr/share/tesseract-ocr/5/tessdata",
+            "/usr/share/tesseract-ocr/4.00/tessdata",
+            "/usr/share/tessdata",
+        ]
         # Elegir la carpeta que tenga el archivo del idioma solicitado
         _chosen_tessdata = None
-        for _td in [_user_tessdata, _sys_tessdata]:
+        for _td in _tessdata_candidates:
+            if not _td:
+                continue
             if _os.path.exists(_os.path.join(_td, f"{lang}.traineddata")):
                 _chosen_tessdata = _td
                 break
@@ -754,8 +773,14 @@ def cmd_to_txt(input_pdf: Path, output: Path, ocr: bool, lang: str = "spa") -> N
             # Fallback a eng si el idioma no existe
             warn(f"Modelo OCR '{lang}' no encontrado. Usando 'eng'. Descarga '{lang}.traineddata' en: {_user_tessdata}")
             lang = "eng"
-            _chosen_tessdata = _user_tessdata if _os.path.exists(_os.path.join(_user_tessdata, "eng.traineddata")) else _sys_tessdata
-        _os.environ["TESSDATA_PREFIX"] = _chosen_tessdata
+            for _td in _tessdata_candidates:
+                if not _td:
+                    continue
+                if _os.path.exists(_os.path.join(_td, "eng.traineddata")):
+                    _chosen_tessdata = _td
+                    break
+        if _chosen_tessdata:
+            _os.environ["TESSDATA_PREFIX"] = _chosen_tessdata
 
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), BarColumn(),
                   TextColumn("{task.completed}/{task.total}"), console=console) as progress:

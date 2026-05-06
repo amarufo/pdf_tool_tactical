@@ -1,11 +1,11 @@
 # amaru_fo-PDF-TOOL-Tactical
 
-Suite CLI visual para editar PDFs en Windows. Pensada para usuarios de oficina: abrir, elegir opcion, seleccionar archivos y obtener el PDF final.
+Suite CLI visual para editar PDFs en Windows y Linux. Pensada para usuarios de oficina: abrir, elegir opcion, seleccionar archivos y obtener el PDF final.
 
 Pagina del autor: <https://amarufo.github.io/PAGE-AIP/>
 OCR/Tesseract recomendado: <https://github.com/UB-Mannheim/tesseract>
 
-## Pasos simples para instalación
+## Pasos simples para instalacion en Windows
 
 1. Descarga esta carpeta completa.
 2. Abre la carpeta.
@@ -19,6 +19,34 @@ Si el instalador no encuentra Python, intentara instalarlo con `winget`. Si eso 
 Para OCR, el instalador intenta usar `winget` con Tesseract de UB-Mannheim. Si no puede instalarlo automaticamente, abre la pagina oficial para descargarlo:
 
 <https://github.com/UB-Mannheim/tesseract>
+
+## Pasos simples para instalacion en Linux
+
+1. Abre una terminal en esta carpeta.
+2. Ejecuta:
+
+```bash
+chmod +x install_linux.sh run_pdftool.sh
+./install_linux.sh
+```
+
+3. Cuando termine, abre la herramienta con:
+
+```bash
+./run_pdftool.sh
+```
+
+Si tu distribucion no trae `venv`, instala el paquete de entorno virtual. En Debian/Ubuntu:
+
+```bash
+sudo apt install python3 python3-venv python3-pip
+```
+
+Para OCR en Debian/Ubuntu instala tambien:
+
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-spa
+```
 
 ## Uso normal
 
@@ -65,7 +93,7 @@ Consejo: cuando te pida una ruta, puedes arrastrar el PDF o la imagen hacia la v
 
 ## Instalacion opcional de OCR y desbloqueo avanzado
 
-Despues de instalar, abre PowerShell y ejecuta:
+Despues de instalar en Windows, abre PowerShell y ejecuta:
 
 ```powershell
 cd "$env:LOCALAPPDATA\AmaruFoPdfTool"
@@ -76,11 +104,17 @@ Para OCR tambien instala Tesseract para Windows.
 
 Descarga recomendada: <https://github.com/UB-Mannheim/tesseract>
 
+En Linux puedes instalar las librerias opcionales con:
+
+```bash
+./.venv/bin/python -m pip install -r requirements-optional.txt
+```
+
 ## Auditoria rapida
 
 Despues de instalar dependencias, puedes ejecutar una prueba completa con archivos temporales:
 
-```powershell
+```bash
 python audit_pdftool.py
 ```
 

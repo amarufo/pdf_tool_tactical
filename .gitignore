@@ -6,6 +6,7 @@ env/
 *.pyo
 .pytest_cache/
 audit_output/
+audit_linux_output/
 *_numerado.pdf
 *_firmado.pdf
 *_numerado_firmado.pdf
