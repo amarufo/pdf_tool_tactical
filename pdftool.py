@@ -23,6 +23,7 @@ import io
 import re
 import shutil
 import sys
+import tempfile
 import time
 import webbrowser
 from pathlib import Path
@@ -48,7 +49,10 @@ except ImportError:
 console = Console()
 
 AUTHOR_NAME = "amaru_fo"
-AUTHOR_PAGE = "github.com/amarufo"
+AUTHOR_PAGE = "https://amarufo.github.io/PAGE-AIP/"
+AUTHOR_GITHUB = "https://github.com/amarufo"
+AUTHOR_CONTACT = "amaruf9523@gmail.com"
+DEFAULT_METADATA_VALUE = AUTHOR_PAGE
 TESSERACT_URL = "github.com/UB-Mannheim/tesseract"
 ASCII_ART_FILE = Path(__file__).with_name("ascci.txt")
 
@@ -125,6 +129,22 @@ FONT_SIZE_DEFAULT = 13
 DEFAULT_MARGIN = 25
 DEFAULT_SIGNATURE_WIDTH = 100
 DEFAULT_SIGNATURE_HEIGHT = 40
+DEFAULT_NUMBER_COLOR = "black"
+
+COLOR_MAP = {
+    "black": (0, 0, 0),
+    "negro": (0, 0, 0),
+    "red": (1, 0, 0),
+    "rojo": (1, 0, 0),
+    "blue": (0, 0.1, 0.85),
+    "azul": (0, 0.1, 0.85),
+    "green": (0, 0.45, 0.1),
+    "verde": (0, 0.45, 0.1),
+    "gray": (0.45, 0.45, 0.45),
+    "gris": (0.45, 0.45, 0.45),
+    "white": (1, 1, 1),
+    "blanco": (1, 1, 1),
+}
 
 
 def load_intro_art() -> str:
@@ -142,33 +162,32 @@ def load_intro_art() -> str:
 
 def banner() -> None:
     intro = Text(load_intro_art(), style="bold cyan")
-    console.print(Panel.fit(intro, title=AUTHOR_NAME, subtitle=AUTHOR_PAGE, border_style="cyan"))
-    console.print(Panel(TOOLBOX_ART + f"\nAutor: {AUTHOR_NAME}\nPagina: {AUTHOR_PAGE}", border_style="green"))
+    console.print(Panel.fit(intro, border_style="cyan"))
 
 
 def ok(message: str) -> None:
-    console.print(Panel(f"{ANIMALITO_LISTO}\n[bold green]+[/bold green] {message}", border_style="green"))
+    console.print(f"[bold green]+[/bold green] {message}")
 
 
 def warn(message: str) -> None:
-    console.print(Panel(f"{ANIMALITO_TRABAJO}\n[bold yellow]![/bold yellow] {message}", border_style="yellow"))
+    console.print(f"[bold yellow]![/bold yellow] {message}")
 
 
 def err(message: str) -> None:
-    console.print(Panel(f"{ANIMALITO}\n[bold red]x[/bold red] {message}", border_style="red"))
+    console.print(f"[bold red]x[/bold red] {message}")
 
 
 def start_operation(title: str, detail: str | None = None) -> float:
-    text = f"{ANIMALITO_TRABAJO}\n[bold cyan]{title}[/bold cyan]"
+    text = f"[bold cyan]{title}[/bold cyan]"
     if detail:
         text += f"\n{detail}"
-    console.print(Panel(text, title="Progreso", border_style="cyan"))
+    console.print(text)
     return time.perf_counter()
 
 
 def finish_operation(title: str, started_at: float, output: Path | None = None) -> None:
     elapsed = time.perf_counter() - started_at
-    lines = [ANIMALITO_LISTO, f"[bold green]{title}[/bold green]", f"Tiempo: {elapsed:.1f}s"]
+    lines = [f"[bold green]{title}[/bold green]", f"Tiempo: {elapsed:.1f}s"]
     if output is not None:
         resolved = Path(output).resolve()
         lines.extend([
@@ -176,12 +195,11 @@ def finish_operation(title: str, started_at: float, output: Path | None = None) 
             f"Carpeta: [magenta]{resolved.parent}[/magenta]",
             f"Ruta: [yellow]{resolved}[/yellow]",
         ])
-    lines.append(f"Pagina amaru_fo: [underline blue]{AUTHOR_PAGE}[/underline blue]")
-    console.print(Panel("\n".join(lines), title="Resultado", border_style="green"))
+    console.print("\n".join(lines))
 
 
 def open_author_page() -> None:
-    console.print(Panel(f"{ANIMALITO}\nAbriendo pagina de amaru_fo:\n[blue underline]{AUTHOR_PAGE}[/blue underline]", border_style="blue"))
+    console.print(f"Abriendo pagina de amaru_fo: [blue underline]{AUTHOR_PAGE}[/blue underline]")
     webbrowser.open(AUTHOR_PAGE)
 
 
@@ -193,11 +211,10 @@ def show_file(label: str, path: Path) -> None:
     resolved = Path(path).resolve()
     console.print(
         Panel.fit(
-            f"{ANIMALITO_LISTO}\n[bold]{label}[/bold]\n"
+            f"[bold]{label}[/bold]\n"
             f"  Nombre  : [cyan]{resolved.name}[/cyan]\n"
             f"  Carpeta : [magenta]{resolved.parent}[/magenta]\n"
-            f"  Ruta    : [yellow]{resolved}[/yellow]\n"
-            f"  Web     : [blue underline]{AUTHOR_PAGE}[/blue underline]",
+            f"  Ruta    : [yellow]{resolved}[/yellow]",
             border_style="green",
             box=box.ROUNDED,
         )
@@ -205,7 +222,6 @@ def show_file(label: str, path: Path) -> None:
 
 
 def show_teaching_panel() -> None:
-    console.print(Panel(ANIMALITO + "\n" + STEPS_ART, title="Ruta facil", border_style="green"))
     console.print(Panel(CORNERS_ART, title="Esquinas", border_style="magenta"))
     console.print(
         Panel(
@@ -278,6 +294,34 @@ def ask_float(message: str, default: float) -> float:
             err("Escribe un numero valido, por ejemplo 1.25")
 
 
+def parse_pdf_color(color: str | tuple[float, float, float]) -> tuple[float, float, float]:
+    if isinstance(color, tuple):
+        return color
+    value = color.strip().lower()
+    if value in COLOR_MAP:
+        return COLOR_MAP[value]
+    if value.startswith("#") and len(value) == 7:
+        try:
+            return tuple(int(value[index:index + 2], 16) / 255 for index in (1, 3, 5))  # type: ignore[return-value]
+        except ValueError as exc:
+            raise ValueError(f"Color hexadecimal invalido: {color}") from exc
+    if "," in value:
+        parts = [float(part.strip()) for part in value.split(",")]
+        if len(parts) == 3:
+            if any(part > 1 for part in parts):
+                parts = [part / 255 for part in parts]
+            if all(0 <= part <= 1 for part in parts):
+                return tuple(parts)  # type: ignore[return-value]
+    raise ValueError("Color invalido. Usa negro/rojo/azul/verde/gris, #RRGGBB o R,G,B.")
+
+
+def apply_default_pdf_metadata(doc: fitz.Document) -> None:
+    metadata = dict(doc.metadata or {})
+    for key in ("title", "author", "subject", "keywords", "creator", "producer"):
+        metadata[key] = DEFAULT_METADATA_VALUE
+    doc.set_metadata(metadata)
+
+
 def page_count(path: Path) -> int:
     doc = fitz.open(path)
     total = len(doc)
@@ -295,7 +339,7 @@ def describe_numbering(total: int, reverse: bool, start: int, digits: int) -> Ta
     if total > 1:
         samples.append(total)
     for physical in samples:
-        value = total - physical + 1 if reverse else start + physical - 1
+        value = start + total - physical if reverse else start + physical - 1
         table.add_row(str(physical), f"{value:0{digits}d}")
     return table
 
@@ -331,17 +375,25 @@ def add_number_to_page(
     margin: float = DEFAULT_MARGIN,
     x: float | None = None,
     y: float | None = None,
+    color: str | tuple[float, float, float] = DEFAULT_NUMBER_COLOR,
+    scale: float = 1.0,
 ) -> None:
+    if scale <= 0:
+        raise ValueError("La escala del numero debe ser mayor que 0")
+    final_font_size = max(1.0, font_size * scale)
+    pdf_color = parse_pdf_color(color)
     text = f"{value:0{digits}d}"
-    text_width = fitz.get_text_length("0" * digits, fontname="helv", fontsize=font_size)
-    text_height = float(font_size)
+    text_width = fitz.get_text_length("0" * digits, fontname="helv", fontsize=final_font_size)
+    text_height = float(final_font_size)
     px, py = corner_xy(page.rect, corner, text_width, text_height, margin, x, y)
+    px = max(0, min(px, max(0, page.rect.width - text_width)))
+    py = max(0, min(py, max(0, page.rect.height - text_height)))
     page.insert_text(
         (px, py + text_height * 0.85),
         text,
-        fontsize=font_size,
+        fontsize=final_font_size,
         fontname="helv",
-        color=(0, 0, 0),
+        color=pdf_color,
     )
 
 
@@ -381,6 +433,8 @@ def render_stamp_preview(
     signature_width: float,
     signature_height: float,
     signature_scale: float,
+    number_color: str | tuple[float, float, float] = DEFAULT_NUMBER_COLOR,
+    number_scale: float = 1.0,
     number_x: float | None = None,
     number_y: float | None = None,
     signature_x: float | None = None,
@@ -395,8 +449,11 @@ def render_stamp_preview(
     preview.insert_pdf(src, from_page=page_number - 1, to_page=page_number - 1)
     src.close()
     page = preview[0]
-    value = total - page_number + 1 if reverse else start + page_number - 1
-    add_number_to_page(page, value, number_corner, digits, font_size, x=number_x, y=number_y)
+    value = start + total - page_number if reverse else start + page_number - 1
+    add_number_to_page(
+        page, value, number_corner, digits, font_size,
+        x=number_x, y=number_y, color=number_color, scale=number_scale,
+    )
     if signature:
         add_signature_to_page(
             page,
@@ -418,19 +475,73 @@ def render_stamp_preview(
 
 def save_pdf(doc: fitz.Document, output: Path, fast_overlay: bool = False) -> None:
     ensure_parent(output)
+    apply_default_pdf_metadata(doc)
     kwargs = {"garbage": 1, "deflate": True}
     if fast_overlay:
         kwargs.update({"deflate_images": False, "deflate_fonts": False})
     doc.save(output, **kwargs)
 
 
-def cmd_merge(inputs: list[Path], output: Path) -> None:
+def discover_pdfs(folder: Path, recursive: bool = True) -> list[Path]:
+    if not folder.is_dir():
+        raise FileNotFoundError(f"No existe la carpeta: {folder}")
+    pattern = "**/*.pdf" if recursive else "*.pdf"
+    return sorted(path for path in folder.glob(pattern) if path.is_file())
+
+
+def cmd_collect_pdfs(input_dir: Path, output_dir: Path, start: int = 1, recursive: bool = True) -> list[Path]:
+    pdfs = discover_pdfs(input_dir, recursive=recursive)
+    output_resolved = output_dir.resolve()
+    filtered: list[Path] = []
+    for pdf in pdfs:
+        try:
+            pdf.resolve().relative_to(output_resolved)
+            continue
+        except ValueError:
+            filtered.append(pdf)
+    pdfs = filtered
+    if not pdfs:
+        raise ValueError(f"No se encontraron PDFs en: {input_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    padding = len(str(start + len(pdfs) - 1))
+    copied: list[Path] = []
+    with Progress(SpinnerColumn(), TextColumn("{task.description}"), BarColumn(),
+                  TextColumn("{task.completed}/{task.total}"), console=console) as progress:
+        task = progress.add_task("Extrayendo PDFs de carpeta", total=len(pdfs))
+        for counter, source in enumerate(pdfs, start=start):
+            destination = output_dir / f"{counter:0{padding}d}_{source.name}"
+            shutil.copy2(source, destination)
+            copied.append(destination)
+            progress.advance(task)
+    ok(f"PDFs extraidos: {len(copied)}")
+    show_file("Carpeta destino", output_dir)
+    return copied
+
+
+def cmd_merge(inputs: list[Path] | None, output: Path, folder: Path | None = None, recursive: bool = True) -> None:
+    selected = list(inputs or [])
+    if folder is not None:
+        selected.extend(discover_pdfs(folder, recursive=recursive))
+    if not selected:
+        raise ValueError("Debes indicar PDFs por lista o una carpeta con PDFs")
+    output_resolved = output.resolve()
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for pdf in selected:
+        resolved = pdf.resolve()
+        if resolved == output_resolved or resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append(pdf)
+    selected = unique
+    if not selected:
+        raise ValueError("No hay PDFs validos para unir despues de excluir la salida")
     out = fitz.open()
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), BarColumn(),
                   TextColumn("{task.completed}/{task.total}"), TimeElapsedColumn(),
                   console=console) as progress:
-        task = progress.add_task("Uniendo PDFs", total=len(inputs))
-        for pdf in inputs:
+        task = progress.add_task("Uniendo PDFs", total=len(selected))
+        for pdf in selected:
             doc = fitz.open(pdf)
             out.insert_pdf(doc)
             doc.close()
@@ -438,6 +549,41 @@ def cmd_merge(inputs: list[Path], output: Path) -> None:
     save_pdf(out, output)
     out.close()
     show_file("PDF unido", output)
+
+
+def cmd_folder_stamp(
+    input_dir: Path,
+    signature: Path,
+    output: Path,
+    number_corner: str = "tr",
+    signature_corner: str = "br",
+    digits: int = 6,
+    reverse: bool = True,
+    start: int = 1,
+    font_size: int = FONT_SIZE_DEFAULT,
+    signature_width: float = DEFAULT_SIGNATURE_WIDTH,
+    signature_height: float = DEFAULT_SIGNATURE_HEIGHT,
+    signature_scale: float = 1.0,
+    signature_pages: str | None = None,
+    number_color: str | tuple[float, float, float] = DEFAULT_NUMBER_COLOR,
+    number_scale: float = 1.0,
+    recursive: bool = True,
+    collect_dir: Path | None = None,
+    collect_start: int = 1,
+) -> None:
+    selected = cmd_collect_pdfs(input_dir, collect_dir, collect_start, recursive) if collect_dir else discover_pdfs(input_dir, recursive)
+    if not selected:
+        raise ValueError(f"No se encontraron PDFs en: {input_dir}")
+    ensure_parent(output)
+    temp_root = output.resolve().parent if output.parent else Path.cwd()
+    with tempfile.TemporaryDirectory(prefix="pdftool_merge_", dir=str(temp_root)) as temp_dir:
+        merged = Path(temp_dir) / "unido_temporal.pdf"
+        cmd_merge(selected, merged)
+        cmd_stamp(
+            merged, signature, output, number_corner, signature_corner, digits, reverse, start,
+            font_size, signature_width, signature_height, signature_scale, signature_pages, None,
+            number_color, number_scale,
+        )
 
 
 def cmd_split(input_pdf: Path, output_dir: Path, every: int = 1) -> list[Path]:
@@ -543,6 +689,8 @@ def cmd_unlock(input_pdf: Path, output: Path, password: str | None, rebuild: boo
         try:
             ensure_parent(output)
             with pikepdf.open(input_pdf, password=password or "", allow_overwriting_input=True) as pdf:
+                for key in ("/Title", "/Author", "/Subject", "/Keywords", "/Creator", "/Producer"):
+                    pdf.docinfo[key] = DEFAULT_METADATA_VALUE
                 pdf.save(output)
             show_file("PDF desbloqueado con pikepdf", output)
             return
@@ -555,6 +703,7 @@ def cmd_unlock(input_pdf: Path, output: Path, password: str | None, rebuild: boo
         doc.close()
         raise RuntimeError("Contrasena incorrecta o PDF protegido sin clave conocida.")
     ensure_parent(output)
+    apply_default_pdf_metadata(doc)
     doc.save(output, garbage=4, deflate=True, encryption=getattr(fitz, "PDF_ENCRYPT_NONE", 1))
     doc.close()
     show_file("PDF desbloqueado", output)
@@ -637,6 +786,8 @@ def cmd_number(
     font_size: int = FONT_SIZE_DEFAULT,
     x: float | None = None,
     y: float | None = None,
+    color: str | tuple[float, float, float] = DEFAULT_NUMBER_COLOR,
+    number_scale: float = 1.0,
 ) -> None:
     doc = fitz.open(input_pdf)
     total = len(doc)
@@ -646,8 +797,8 @@ def cmd_number(
         task = progress.add_task(f"Numerando en {CORNER_MAP[corner]}", total=total)
         for index in range(len(doc)):
             page = doc[index]
-            value = total - index if reverse else start + index
-            add_number_to_page(page, value, corner, digits, font_size, x=x, y=y)
+            value = start + total - 1 - index if reverse else start + index
+            add_number_to_page(page, value, corner, digits, font_size, x=x, y=y, color=color, scale=number_scale)
             progress.advance(task)
     save_pdf(doc, output, fast_overlay=True)
     doc.close()
@@ -703,11 +854,14 @@ def cmd_stamp(
     signature_scale: float = 1.0,
     signature_pages: str | None = None,
     preview: Path | None = None,
+    number_color: str | tuple[float, float, float] = DEFAULT_NUMBER_COLOR,
+    number_scale: float = 1.0,
 ) -> None:
     if preview:
         render_stamp_preview(
             input_pdf, preview, signature, 1, number_corner, signature_corner,
             reverse, start, digits, font_size, signature_width, signature_height, signature_scale,
+            number_color, number_scale,
         )
     signature_bytes = signature.read_bytes()
     doc = fitz.open(input_pdf)
@@ -718,7 +872,7 @@ def cmd_stamp(
     console.print(
         Panel(
             STAMP_ART
-            + f"\nNumero: {CORNER_MAP[number_corner]} | Firma: {CORNER_MAP[signature_corner]} | Escala firma: {signature_scale}",
+            + f"\nNumero: {CORNER_MAP[number_corner]} | Firma: {CORNER_MAP[signature_corner]} | Escala firma: {signature_scale} | Color folio: {number_color} | Escala folio: {number_scale}",
             title="Modo combinado: numerar + firmar",
             border_style="green",
         )
@@ -729,8 +883,8 @@ def cmd_stamp(
         task = progress.add_task("Aplicando numero y firma", total=total)
         for index in range(len(doc)):
             page = doc[index]
-            value = total - index if reverse else start + index
-            add_number_to_page(page, value, number_corner, digits, font_size)
+            value = start + total - 1 - index if reverse else start + index
+            add_number_to_page(page, value, number_corner, digits, font_size, color=number_color, scale=number_scale)
             if index in target:
                 signature_xref = add_signature_to_page(
                     page, signature_bytes, signature_xref, signature_corner,
@@ -773,6 +927,7 @@ def cmd_compress(input_pdf: Path, output: Path) -> None:
     before = input_pdf.stat().st_size
     doc = fitz.open(input_pdf)
     ensure_parent(output)
+    apply_default_pdf_metadata(doc)
     doc.save(output, garbage=4, deflate=True, deflate_images=True, deflate_fonts=True, clean=True)
     doc.close()
     after = output.stat().st_size
@@ -904,6 +1059,7 @@ def cmd_protect(input_pdf: Path, output: Path, user_password: str, owner_passwor
         raise ValueError("Debes indicar una contrasena de apertura")
     doc = fitz.open(input_pdf)
     ensure_parent(output)
+    apply_default_pdf_metadata(doc)
     doc.save(
         output,
         garbage=4,
@@ -911,7 +1067,7 @@ def cmd_protect(input_pdf: Path, output: Path, user_password: str, owner_passwor
         encryption=getattr(fitz, "PDF_ENCRYPT_AES_256", 5),
         owner_pw=owner_password or user_password,
         user_pw=user_password,
-        permissions=getattr(fitz, "PDF_PERM_PRINT", 4),
+        permissions=0,
     )
     doc.close()
     show_file("PDF protegido con contrasena", output)
@@ -964,7 +1120,9 @@ MENU = [
     ("Trabajo frecuente", "2", "preview", "Generar muestra PNG de numero/firma"),
     ("Trabajo frecuente", "3", "number", "Solo numerar paginas"),
     ("Trabajo frecuente", "4", "sign", "Solo insertar firma"),
+    ("Trabajo frecuente", "21", "folder-stamp", "Extraer carpeta, unir, foliar y firmar"),
     ("Armar documentos", "5", "merge", "Unir PDFs"),
+    ("Armar documentos", "22", "collect-pdfs", "Extraer PDFs de carpeta con prefijo"),
     ("Armar documentos", "6", "split", "Dividir PDF"),
     ("Armar documentos", "7", "extract", "Extraer o reordenar paginas"),
     ("Armar documentos", "8", "insert", "Insertar PDF dentro de otro"),
@@ -987,12 +1145,6 @@ MENU = [
 
 
 def show_menu() -> None:
-    console.print(Panel(
-        ANIMALITO + "\n[bold]amaru_fo PDF TOOL[/bold]\n"
-        "Recomendado: empieza con la opcion 1 para numerar + firmar.\n"
-        f"Pagina: [blue underline]{AUTHOR_PAGE}[/blue underline]",
-        border_style="cyan",
-    ))
     table = Table(title="Menu principal por categorias", box=box.ROUNDED, border_style="cyan")
     table.add_column("Categoria", style="magenta")
     table.add_column("Opcion", justify="center", style="bold yellow")
@@ -1009,7 +1161,7 @@ def ask_numbering_options(total: int) -> tuple[bool, int, int]:
     digits = IntPrompt.ask("Digitos del numero", default=6)
     direction = Prompt.ask("Orden de numeracion", choices=["inicio-fin", "fin-inicio"], default="fin-inicio")
     reverse = direction == "fin-inicio"
-    start = 1 if reverse else IntPrompt.ask("Numero inicial", default=1)
+    start = IntPrompt.ask("Numero inicial (si es fin-inicio, este va en la ultima pagina)" if reverse else "Numero inicial", default=1)
     console.print(describe_numbering(total, reverse, start, digits))
     return reverse, start, digits
 
@@ -1022,6 +1174,8 @@ def interactive_stamp() -> None:
     reverse, start, digits = ask_numbering_options(total)
     number_corner = ask_corner("tr")
     signature_corner = ask_corner("br")
+    number_color = Prompt.ask("Color del folio", default=DEFAULT_NUMBER_COLOR)
+    number_scale = ask_float("Escala del folio (1.0 normal, 2.0 doble)", 1.0)
     scale = ask_float("Escala de firma (1.0 = tamano base 100x40 pt)", 1.0)
     signature_pages = Prompt.ask("Paginas donde va la firma", default="all")
     signature_pages = None if signature_pages.lower() in ("all", "todas", "*") else signature_pages
@@ -1030,13 +1184,14 @@ def interactive_stamp() -> None:
         render_stamp_preview(
             src, preview, signature, 1, number_corner, signature_corner, reverse,
             start, digits, FONT_SIZE_DEFAULT, DEFAULT_SIGNATURE_WIDTH,
-            DEFAULT_SIGNATURE_HEIGHT, scale,
+            DEFAULT_SIGNATURE_HEIGHT, scale, number_color, number_scale,
         )
     output = Path(Prompt.ask("Archivo PDF final", default=str(out_path(src, "_numerado_firmado"))))
     console.print(
         Panel(
             f"PDF: [cyan]{src.name}[/cyan]\n"
             f"Numero: [yellow]{CORNER_MAP[number_corner]}[/yellow] | orden: {'fin-inicio' if reverse else 'inicio-fin'}\n"
+            f"Folio: color {number_color} | escala {number_scale}\n"
             f"Firma: [yellow]{CORNER_MAP[signature_corner]}[/yellow] | escala: {scale}\n"
             f"Salida: [green]{output}[/green]",
             title="Revisar antes de ejecutar",
@@ -1044,7 +1199,7 @@ def interactive_stamp() -> None:
         )
     )
     if Confirm.ask("Aplicar ahora", default=True):
-        cmd_stamp(src, signature, output, number_corner, signature_corner, digits, reverse, start, signature_scale=scale, signature_pages=signature_pages)
+        cmd_stamp(src, signature, output, number_corner, signature_corner, digits, reverse, start, signature_scale=scale, signature_pages=signature_pages, number_color=number_color, number_scale=number_scale)
 
 
 def interactive_number() -> None:
@@ -1052,8 +1207,10 @@ def interactive_number() -> None:
     total = page_count(src)
     reverse, start, digits = ask_numbering_options(total)
     corner = ask_corner("tr")
+    number_color = Prompt.ask("Color del folio", default=DEFAULT_NUMBER_COLOR)
+    number_scale = ask_float("Escala del folio (1.0 normal, 2.0 doble)", 1.0)
     output = Path(Prompt.ask("Archivo de salida", default=str(out_path(src, "_numerado"))))
-    cmd_number(src, output, corner=corner, digits=digits, reverse=reverse, start=start)
+    cmd_number(src, output, corner=corner, digits=digits, reverse=reverse, start=start, color=number_color, number_scale=number_scale)
 
 
 def interactive_sign() -> None:
@@ -1096,18 +1253,27 @@ def interactive() -> None:
                 reverse, start, digits = ask_numbering_options(total)
                 number_corner = ask_corner("tr")
                 signature_corner = ask_corner("br")
+                number_color = Prompt.ask("Color del folio", default=DEFAULT_NUMBER_COLOR)
+                number_scale = ask_float("Escala del folio (1.0 normal, 2.0 doble)", 1.0)
                 scale = ask_float("Escala de firma", 1.0)
                 output = Path(Prompt.ask("PNG de salida", default=str(out_path(src, "_muestra", ".png"))))
-                render_stamp_preview(src, output, signature, 1, number_corner, signature_corner, reverse, start, digits, FONT_SIZE_DEFAULT, DEFAULT_SIGNATURE_WIDTH, DEFAULT_SIGNATURE_HEIGHT, scale)
+                render_stamp_preview(src, output, signature, 1, number_corner, signature_corner, reverse, start, digits, FONT_SIZE_DEFAULT, DEFAULT_SIGNATURE_WIDTH, DEFAULT_SIGNATURE_HEIGHT, scale, number_color, number_scale)
             elif choice == "3":
                 interactive_number()
             elif choice == "4":
                 interactive_sign()
             elif choice == "5":
-                count = IntPrompt.ask("Cuantos PDFs quieres unir")
-                inputs = [ask_path(f"PDF {index + 1}") for index in range(count)]
-                output = Path(Prompt.ask("Archivo de salida", default=str(out_path(inputs[0], "_unido"))))
-                cmd_merge(inputs, output)
+                mode = Prompt.ask("Modo de union", choices=["lista", "carpeta"], default="carpeta")
+                if mode == "carpeta":
+                    folder = ask_path("Carpeta con PDFs", is_dir=True)
+                    recursive = Confirm.ask("Buscar tambien en subcarpetas", default=True)
+                    output = Path(Prompt.ask("Archivo de salida", default=str(folder / "pdfs_unidos.pdf")))
+                    cmd_merge([], output, folder=folder, recursive=recursive)
+                else:
+                    count = IntPrompt.ask("Cuantos PDFs quieres unir")
+                    inputs = [ask_path(f"PDF {index + 1}") for index in range(count)]
+                    output = Path(Prompt.ask("Archivo de salida", default=str(out_path(inputs[0], "_unido"))))
+                    cmd_merge(inputs, output)
             elif choice == "6":
                 src = ask_path("PDF a dividir")
                 every = IntPrompt.ask("Cada cuantas paginas", default=1)
@@ -1201,6 +1367,30 @@ def interactive() -> None:
                 cmd_metadata(src, output, title or None, author or None, subject or None, keywords or None)
             elif choice == "20":
                 cmd_info(ask_path("PDF a inspeccionar"))
+            elif choice == "21":
+                folder = ask_path("Carpeta origen", is_dir=True)
+                signature = ask_path("Imagen de firma")
+                recursive = Confirm.ask("Buscar PDFs en subcarpetas", default=True)
+                pdfs = discover_pdfs(folder, recursive=recursive)
+                if not pdfs:
+                    raise ValueError(f"No se encontraron PDFs en: {folder}")
+                total = sum(page_count(pdf) for pdf in pdfs)
+                reverse, start, digits = ask_numbering_options(total)
+                number_corner = ask_corner("tr")
+                signature_corner = ask_corner("br")
+                number_color = Prompt.ask("Color del folio", default=DEFAULT_NUMBER_COLOR)
+                number_scale = ask_float("Escala del folio (1.0 normal, 2.0 doble)", 1.0)
+                signature_scale = ask_float("Escala de firma", 1.0)
+                collect = Confirm.ask("Copiar PDFs extraidos con prefijo a una carpeta", default=True)
+                collect_dir = Path(Prompt.ask("Carpeta de PDFs extraidos", default=str(folder / "pdfs_extraidos"))) if collect else None
+                output = Path(Prompt.ask("PDF final", default=str(folder / "carpeta_foliada_firmada.pdf")))
+                cmd_folder_stamp(folder, signature, output, number_corner, signature_corner, digits, reverse, start, FONT_SIZE_DEFAULT, DEFAULT_SIGNATURE_WIDTH, DEFAULT_SIGNATURE_HEIGHT, signature_scale, None, number_color, number_scale, recursive, collect_dir)
+            elif choice == "22":
+                folder = ask_path("Carpeta origen", is_dir=True)
+                output_dir = Path(Prompt.ask("Carpeta destino", default=str(folder / "pdfs_extraidos")))
+                start = IntPrompt.ask("Numero inicial del prefijo", default=1)
+                recursive = Confirm.ask("Buscar PDFs en subcarpetas", default=True)
+                cmd_collect_pdfs(folder, output_dir, start, recursive)
         except KeyboardInterrupt:
             warn("Operacion cancelada.")
         except Exception as exc:
@@ -1237,6 +1427,8 @@ def build_parser() -> argparse.ArgumentParser:
     stamp.add_argument("--reverse", action="store_true", default=False, help="Ultima pagina = 000001.")
     stamp.add_argument("--start", type=int, default=1)
     stamp.add_argument("--font-size", type=int, default=FONT_SIZE_DEFAULT)
+    stamp.add_argument("--number-color", default=DEFAULT_NUMBER_COLOR, help="Color del folio: negro, rojo, azul, verde, #RRGGBB o R,G,B.")
+    stamp.add_argument("--number-scale", type=float, default=1.0, help="Escala del folio: 1 normal, 2 doble, 3 triple.")
     stamp.add_argument("--signature-width", type=float, default=DEFAULT_SIGNATURE_WIDTH)
     stamp.add_argument("--signature-height", type=float, default=DEFAULT_SIGNATURE_HEIGHT)
     stamp.add_argument("--signature-scale", type=float, default=1.0)
@@ -1254,13 +1446,43 @@ def build_parser() -> argparse.ArgumentParser:
     preview.add_argument("--start", type=int, default=1)
     preview.add_argument("--digits", type=int, default=6)
     preview.add_argument("--font-size", type=int, default=FONT_SIZE_DEFAULT)
+    preview.add_argument("--number-color", default=DEFAULT_NUMBER_COLOR)
+    preview.add_argument("--number-scale", type=float, default=1.0)
     preview.add_argument("--signature-width", type=float, default=DEFAULT_SIGNATURE_WIDTH)
     preview.add_argument("--signature-height", type=float, default=DEFAULT_SIGNATURE_HEIGHT)
     preview.add_argument("--signature-scale", type=float, default=1.0)
 
     merge = sub.add_parser("merge", help="Unir varios PDFs.")
-    merge.add_argument("inputs", nargs="+", type=Path)
+    merge.add_argument("inputs", nargs="*", type=Path)
+    merge.add_argument("--folder", type=Path, default=None, help="Unir todos los PDFs de una carpeta.")
+    merge.add_argument("--no-recursive", action="store_true", help="Con --folder, no buscar en subcarpetas.")
     merge.add_argument("-o", "--output", type=Path, required=True)
+
+    collect = sub.add_parser("collect-pdfs", help="Copiar PDFs de una carpeta a otra con prefijo numerico.")
+    collect.add_argument("input_dir", type=Path)
+    collect.add_argument("-o", "--output-dir", type=Path, required=True)
+    collect.add_argument("--start", type=int, default=1)
+    collect.add_argument("--no-recursive", action="store_true")
+
+    folder_stamp = sub.add_parser("folder-stamp", help="Extraer PDFs de carpeta, unirlos, foliarlos y firmarlos.")
+    folder_stamp.add_argument("input_dir", type=Path)
+    folder_stamp.add_argument("--signature", type=Path, required=True)
+    folder_stamp.add_argument("-o", "--output", type=Path, required=True)
+    folder_stamp.add_argument("--number-corner", choices=list(CORNER_MAP), default="tr")
+    folder_stamp.add_argument("--signature-corner", choices=list(CORNER_MAP), default="br")
+    folder_stamp.add_argument("--digits", type=int, default=6)
+    folder_stamp.add_argument("--reverse", action="store_true", default=False)
+    folder_stamp.add_argument("--start", type=int, default=1)
+    folder_stamp.add_argument("--font-size", type=int, default=FONT_SIZE_DEFAULT)
+    folder_stamp.add_argument("--number-color", default=DEFAULT_NUMBER_COLOR)
+    folder_stamp.add_argument("--number-scale", type=float, default=1.0)
+    folder_stamp.add_argument("--signature-width", type=float, default=DEFAULT_SIGNATURE_WIDTH)
+    folder_stamp.add_argument("--signature-height", type=float, default=DEFAULT_SIGNATURE_HEIGHT)
+    folder_stamp.add_argument("--signature-scale", type=float, default=1.0)
+    folder_stamp.add_argument("--signature-pages", default=None)
+    folder_stamp.add_argument("--collect-dir", type=Path, default=None, help="Carpeta donde copiar PDFs extraidos con prefijo.")
+    folder_stamp.add_argument("--collect-start", type=int, default=1)
+    folder_stamp.add_argument("--no-recursive", action="store_true")
 
     split = sub.add_parser("split", help="Dividir PDF cada N paginas.")
     split.add_argument("input", type=Path)
@@ -1286,6 +1508,8 @@ def build_parser() -> argparse.ArgumentParser:
     number.add_argument("--reverse", action="store_true")
     number.add_argument("--start", type=int, default=1)
     number.add_argument("--font-size", type=int, default=FONT_SIZE_DEFAULT)
+    number.add_argument("--number-color", "--color", dest="color", default=DEFAULT_NUMBER_COLOR)
+    number.add_argument("--number-scale", type=float, default=1.0)
     number.add_argument("--x", type=float, default=None)
     number.add_argument("--y", type=float, default=None)
 
@@ -1352,7 +1576,7 @@ def build_parser() -> argparse.ArgumentParser:
     watermark.add_argument("--opacity", type=float, default=0.16)
     watermark.add_argument("--rotate", type=int, choices=[0, 90, 180, 270], default=0)
 
-    protect = sub.add_parser("protect", help="Proteger PDF con contrasena de apertura.")
+    protect = sub.add_parser("protect", help="Proteger PDF con AES-256 y bloquear permisos de edicion/copia/impresion.")
     protect.add_argument("input", type=Path)
     protect.add_argument("-o", "--output", type=Path, required=True)
     protect.add_argument("--password", required=True)
@@ -1389,16 +1613,28 @@ def main(argv: list[str] | None = None) -> int:
                 args.signature_corner, args.digits, args.reverse, args.start,
                 args.font_size, args.signature_width, args.signature_height,
                 args.signature_scale, args.signature_pages, args.preview,
+                args.number_color, args.number_scale,
             )
         elif args.cmd == "preview":
             render_stamp_preview(
                 args.input, args.output, args.signature, args.page, args.number_corner,
                 args.signature_corner, args.reverse, args.start, args.digits,
                 args.font_size, args.signature_width, args.signature_height,
-                args.signature_scale,
+                args.signature_scale, args.number_color, args.number_scale,
             )
         elif args.cmd == "merge":
-            cmd_merge(args.inputs, args.output)
+            cmd_merge(args.inputs, args.output, args.folder, not args.no_recursive)
+        elif args.cmd == "collect-pdfs":
+            cmd_collect_pdfs(args.input_dir, args.output_dir, args.start, not args.no_recursive)
+        elif args.cmd == "folder-stamp":
+            cmd_folder_stamp(
+                args.input_dir, args.signature, args.output, args.number_corner,
+                args.signature_corner, args.digits, args.reverse, args.start,
+                args.font_size, args.signature_width, args.signature_height,
+                args.signature_scale, args.signature_pages, args.number_color,
+                args.number_scale, not args.no_recursive, args.collect_dir,
+                args.collect_start,
+            )
         elif args.cmd == "split":
             cmd_split(args.input, args.output_dir, args.every)
         elif args.cmd == "extract":
@@ -1406,7 +1642,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.cmd == "insert":
             cmd_insert(args.host, args.guest, args.after, args.pages, args.output)
         elif args.cmd == "number":
-            cmd_number(args.input, args.output, args.corner, args.digits, args.reverse, args.start, args.font_size, args.x, args.y)
+            cmd_number(args.input, args.output, args.corner, args.digits, args.reverse, args.start, args.font_size, args.x, args.y, args.color, args.number_scale)
         elif args.cmd == "sign":
             cmd_sign(args.input, args.signature, args.output, args.corner, args.width, args.height, args.scale, args.pages, args.x, args.y)
         elif args.cmd == "unlock":
